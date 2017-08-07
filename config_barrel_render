@@ -1,0 +1,23 @@
+{
+  "input" : {
+    "barrel" : {}
+  },
+  "output" : {
+    "resolution" : {
+      "width" : 1000,
+      "height" : 1000
+    },
+    "render" : {
+      "fov" : {
+        "horizontal" : 90,
+        "vertical" : 90
+      },
+      "orientation" : {
+        "yaw" : 0,
+        "pitch" : 0
+      },
+      "horiz_plane" : {},
+      "z_offset" : {}
+    }
+  }
+}

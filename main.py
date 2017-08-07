@@ -11,6 +11,7 @@ def deg2rad(d):
 import cube as c
 import equi_to_offset_cube as e2c
 import equirectangular as e
+import barrel as b
       
 if __name__ == '__main__':  
   parser = argparse.ArgumentParser()
@@ -100,3 +101,19 @@ if __name__ == '__main__':
       cb.cube_to_equi(equi_image)
     
       cv2.imwrite('%s_equi.bmp'%img_f.split('/')[-1].split('.')[0], equi_image)
+
+  elif u'barrel' in j[u'input']:
+    if u'render' in j[u'output']: # render
+      # NOTE: this is using render_image, NOT render_image_np as of right now
+      rimg = b.render_image(deg2rad(j[u'output'][u'render'][u'orientation'][u'pitch']), \
+                               deg2rad(j[u'output'][u'render'][u'orientation'][u'yaw']), \
+                               deg2rad(j[u'output'][u'render'][u'fov'][u'vertical']), \
+                               deg2rad(j[u'output'][u'render'][u'fov'][u'horizontal']), \
+                               j[u'output'][u'resolution'][u'width'], \
+                               img
+                               )      
+      cv2.imwrite('%s_%d_%d.bmp' % (img_f.split('/')[-1].split('.')[0], \
+                               j[u'output'][u'render'][u'orientation'][u'yaw'], \
+                               j[u'output'][u'render'][u'orientation'][u'pitch']), \
+                               rimg
+                               )
