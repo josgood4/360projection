@@ -56,7 +56,7 @@ def render_image(theta0, phi0, fov_h, fov_v, width, img):
       ##sys.stdout.flush()
       
       if theta < (np.pi/4):
-        r = 0 if theta==0 else abs(base_height * 0.25 * (theta/(np.pi/4)))
+        r = 0 if theta==0 else abs(base_height * 0.25 * np.tan(theta))
         by = int(-r * np.sin(phi+np.pi/2) + base_height * 0.25) 
         bx = int(r * np.cos(phi+np.pi/2) + base_width * 0.9)
         if bx>=base_width: continue
@@ -69,7 +69,7 @@ def render_image(theta0, phi0, fov_h, fov_v, width, img):
         new_img[diy, dix] = img[by, bx]
       
       else:
-        r = 0 if np.pi-theta<0.00001 else abs(base_height * 0.25 * ((np.pi-theta)/(np.pi/4)))
+        r = 0 if theta==np.pi else abs(base_height * 0.25 * np.tan(np.pi-theta))
         by = int(r * np.sin(phi+np.pi/2) + base_height * 0.75) 
         bx = int(r * np.cos(phi+np.pi/2) + base_width * 0.9)
         if bx>=base_width or by>=base_height: continue
