@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import sys
-#import left_eye
 
 
 def rotate_image(old_image):
@@ -23,62 +22,67 @@ def yrotation(th):
   return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
 
 
-def render_image(theta0, phi0, fov_h, fov_v, width, img):
+def render_image_np(theta0, phi0, fov_h, fov_v, width, img):
   """
   theta0 is pitch
   phi0 is yaw
+  render view at (pitch, yaw) with fov_h by fov_v
+  width is the number of horizontal pixels in the view
   """
-  m = np.dot(yrotation(phi0),xrotation(theta0))
+  m = np.dot(yrotation(phi0), xrotation(theta0))
   
   (base_height, base_width, _) = img.shape
 
-  # for a barrel layout, only the first 4/5 of it are like equi
-
-  scaled_base_width = 0.8*base_width
-
-  height = int(width * np.tan(fov_v/2.0) / np.tan(fov_h/2.0))
+  height = int(width * np.tan(fov_v / 2) / np.tan(fov_h / 2))
 
   new_img = np.zeros((height, width, 3), np.uint8)
+    
+  DI = np.ones((height * width, 3), np.int)
+  trans = np.array([[2.*np.tan(fov_h / 2) / float(width), 0., -np.tan(fov_h / 2)],
+                    [0., -2.*np.tan(fov_v / 2) / float(height), np.tan(fov_v / 2)]])
+  
+  xx, yy = np.meshgrid(np.arange(width), np.arange(height))
+  
+  DI[:, 0] = xx.reshape(height * width)
+  DI[:, 1] = yy.reshape(height * width)
 
-  for diy in np.arange(height):
-    y = np.tan(fov_v/2.) - diy*np.tan(fov_v/2.)/float(height) * 2.
+  v = np.ones((height * width, 3), np.float)
 
-    for dix in np.arange(width):
-      x = dix*np.tan(fov_h/2.)/float(width) * 2. - np.tan(fov_h/2.)
+  v[:, :2] = np.dot(DI, trans.T)
+  v = np.dot(v, m.T)
+  
+  diag = np.sqrt(v[:, 2] ** 2 + v[:, 0] ** 2)
+  theta = np.pi / 2 - np.arctan2(v[:, 1], diag)
+  theta_e = np.pi / 2 - np.arctan2(v[:, 1], diag) * 2
+  phi = np.arctan2(v[:, 0], v[:, 2]) + np.pi
 
-      v = np.dot(m,np.array([x, y, 1.]))
-      
-      diag = np.sqrt(v[2]**2 + v[0]**2)
-      theta = np.pi/2 - np.arctan2(v[1],diag)
-      phi = np.arctan2(v[0],v[2]) + np.pi
+  ey = np.rint(theta_e * base_height / np.pi).astype(np.int)
+  ex = np.rint(phi * base_width * 0.8 / (2 * np.pi)).astype(np.int)
 
-      ##sys.stdout.write("%f\t %f\n" % (theta, phi))
-      ##sys.stdout.flush()
-      
-      if theta < (np.pi/4):
-        r = 0 if theta==0 else abs(base_height * 0.25 * np.tan(theta))
-        by = int(-r * np.sin(phi+np.pi/2) + base_height * 0.25) 
-        bx = int(r * np.cos(phi+np.pi/2) + base_width * 0.9)
-        if bx>=base_width: continue
-        new_img[diy, dix] = img[by, bx]
+  ex[ex >= base_width * 0.8] = base_width * 0.8 - 1
+  ey[ey >= base_height] = base_height - 1
 
-      elif theta < np.pi-(np.pi/4):
-        by = int((theta-(np.pi/4))*base_height/(np.pi-2*(np.pi/4)))
-        bx = int(phi*scaled_base_width/(2*np.pi))
-        if bx>=scaled_base_width: continue
-        new_img[diy, dix] = img[by, bx]
-      
-      else:
-        r = 0 if theta==np.pi else abs(base_height * 0.25 * np.tan(np.pi-theta))
-        by = int(r * np.sin(phi+np.pi/2) + base_height * 0.75) 
-        bx = int(r * np.cos(phi+np.pi/2) + base_width * 0.9)
-        if bx>=base_width or by>=base_height: continue
-        new_img[diy, dix] = img[by, bx]
+  # top of barrel
+  if theta0 > 0:
+    condition = theta < np.pi/4
+    origin = (base_width * 0.9, base_height * 0.25)
+    neg = 1
+  # bottom of barrel
+  else:
+    condition = theta > np.pi*3/4
+    origin = (base_width * 0.9, base_height * 0.75)
+    neg = -1
 
-      ##new_img[diy, dix] = img[by, bx]      
+  r = base_height * 0.25 * np.tan(theta[condition]) \
 
-          
+  ex[condition] = r * neg * np.cos(phi[condition]+np.pi/2) + origin[0]
+  ey[condition] = -r * np.sin(phi[condition]+np.pi/2) + origin[1]
+
+  ex[ex >= base_width] = base_width - 1
+  
+  new_img[DI[:, 1], DI[:, 0]] = img[ey, ex]
   return new_img
+
 
 
 def deg2rad(d):
@@ -87,14 +91,10 @@ def deg2rad(d):
 
 if __name__== '__main__':
  
-  STEREO = False
   img_file = 'b_2500.png'
   img = cv2.imread(img_file)
-  
-  #if STEREO:
-    #img = left_eye.extract_left(image)
 
-  face_size = 1000
+  width = 1000
   
   yaw = 0
   pitch = 0
@@ -104,7 +104,6 @@ if __name__== '__main__':
   
   rimg = render_image(deg2rad(pitch), deg2rad(yaw), \
                       deg2rad(fov_v), deg2rad(fov_h), \
-                      face_size, img)
+                      width, img)
   cv2.imwrite('%s_%d_%d.bmp'%(img_file[:img_file.find('.')], yaw, pitch), rimg) #switched yaw and pitch so it would match other code
 
-#   equi_to_cube(600,img)
