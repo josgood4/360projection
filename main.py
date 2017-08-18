@@ -12,6 +12,7 @@ import cube as c
 import equi_to_offset_cube as e2c
 import equirectangular as e
 import barrel as b
+import equi_to_barrel as e2b
       
 if __name__ == '__main__':  
   parser = argparse.ArgumentParser()
@@ -66,6 +67,16 @@ if __name__ == '__main__':
         output_name = '%s_offcube.bmp' %img_f.split('/')[-1].split('.')[0]
 
       e2c.write_to_cb_img(cb, face_size, output_name)
+
+    elif u'barrel' in j[u'output']:
+      rimg = e2b.equi_to_barrel(j[u'output'][u'barrel'][u'offset'], \
+                               deg2rad(j[u'output'][u'barrel'][u'orientation'][u'pitch']), \
+                               deg2rad(j[u'output'][u'barrel'][u'orientation'][u'yaw']), \
+                               j[u'output'][u'resolution'][u'width'], \
+                               img
+                               )      
+      cv2.imwrite('%s_barrel.bmp' % img_f.split('/')[-1].split('.')[0], rimg)
+      
       
   elif u'cube' in j[u'input']:
     cb = c.Cube(img, \
@@ -103,12 +114,11 @@ if __name__ == '__main__':
       cv2.imwrite('%s_equi.bmp'%img_f.split('/')[-1].split('.')[0], equi_image)
 
   elif u'barrel' in j[u'input']:
-    if u'render' in j[u'output']: # render
-      # NOTE: this is using render_image, NOT render_image_np as of right now
-      rimg = b.render_image(deg2rad(j[u'output'][u'render'][u'orientation'][u'pitch']), \
-                               deg2rad(j[u'output'][u'render'][u'orientation'][u'yaw']), \
-                               deg2rad(j[u'output'][u'render'][u'fov'][u'vertical']), \
+    if u'render' in j[u'output']:
+      rimg = b.render_image_np(deg2rad(j[u'output'][u'render'][u'orientation'][u'yaw']), \
+                               deg2rad(j[u'output'][u'render'][u'orientation'][u'pitch']), \
                                deg2rad(j[u'output'][u'render'][u'fov'][u'horizontal']), \
+                               deg2rad(j[u'output'][u'render'][u'fov'][u'vertical']), \
                                j[u'output'][u'resolution'][u'width'], \
                                img
                                )      
@@ -117,3 +127,10 @@ if __name__ == '__main__':
                                j[u'output'][u'render'][u'orientation'][u'pitch']), \
                                rimg
                                )
+    if u'equi' in j[u'output']:
+      rimg = b.barrel_to_equi(deg2rad(j[u'input'][u'barrel'][u'orientation'][u'yaw']), \
+                               deg2rad(j[u'input'][u'barrel'][u'orientation'][u'pitch']), \
+                               j[u'output'][u'resolution'][u'width'], \
+                               img
+                               )
+      cv2.imwrite('%s_equi.bmp' % img_f.split('/')[-1].split('.')[0], rimg)

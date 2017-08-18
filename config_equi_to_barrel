@@ -1,0 +1,18 @@
+{
+  "input" : {
+    "equi" : {}
+  },
+  "output" : {
+    "resolution" : {
+      "width" : 2500
+    },
+    "barrel" : {
+      "orientation" : {
+        "yaw" : 0,
+        "pitch" : 0
+      },
+      "expand_coef" : 1.00,
+      "offset" : 0
+    }
+  }
+}
